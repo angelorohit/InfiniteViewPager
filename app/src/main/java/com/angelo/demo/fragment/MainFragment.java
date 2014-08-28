@@ -24,12 +24,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.angelo.demo.R;
 import com.angelo.demo.adapter.InfiniteViewPagerAdapter;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-
-import com.angelo.demo.R;
 
 /**
  * The main fragment that contains the {@link com.angelo.demo.widget.InfiniteViewPager}.
@@ -56,7 +55,7 @@ public class MainFragment extends Fragment {
     }
 
     private List<Fragment> createPagerFragments() {
-        List<Fragment> dataList = new ArrayList<Fragment>();
+        List<Fragment> dataList = new LinkedList<Fragment>();
         final Resources res = getActivity().getResources();
         final String[] dataArr = res.getStringArray(R.array.view_pager_data);
 
