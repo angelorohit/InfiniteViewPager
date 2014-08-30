@@ -33,37 +33,98 @@ import java.util.List;
  * @author angelo
  */
 public class InfiniteViewPager extends ViewPager {
+
+    /**
+     * An {@link android.support.v4.view.ViewPager.OnPageChangeListener} that may be set externally.
+     * Internally, this ViewPager always uses
+     * {@link com.angelo.demo.widget.InfiniteViewPager.PageChangeListener}
+     * while ensuring that the external listener is called appropriately.
+     */
+    private OnPageChangeListener externalOnPageChangeListener = null;
+
     public InfiniteViewPager(Context context) {
         super(context);
-        setOnPageChangeListener(new PageChangeListener(this));
+        setActualOnPageChangeListener(new PageChangeListener(this));
     }
 
     public InfiniteViewPager(Context context, AttributeSet attrs) {
         super(context, attrs);
-        setOnPageChangeListener(new PageChangeListener(this));
+        setActualOnPageChangeListener(new PageChangeListener(this));
     }
 
-    private static class PageChangeListener extends SimpleOnPageChangeListener {
-        // The {@link ViewPager} for which this listener has been set.
-        private final ViewPager viewPager;
+    private void setActualOnPageChangeListener(OnPageChangeListener listener) {
+        super.setOnPageChangeListener(listener);
+    }
 
-        public PageChangeListener(final ViewPager viewPager) {
+    @Override
+    public void setOnPageChangeListener(OnPageChangeListener listener) {
+        this.externalOnPageChangeListener = listener;
+    }
+
+    private OnPageChangeListener getExternalOnPageChangeListener() {
+        return this.externalOnPageChangeListener;
+    }
+
+    /**
+     * An {@link android.support.v4.view.ViewPager.OnPageChangeListener} that the
+     * {@link com.angelo.demo.widget.InfiniteViewPager} internally uses to cycle its fragments.
+     */
+    private static class PageChangeListener implements OnPageChangeListener {
+        /**
+         * The {@link com.angelo.demo.widget.InfiniteViewPager} for which
+         * this listener has been set.
+         */
+        private final InfiniteViewPager viewPager;
+
+        public PageChangeListener(final InfiniteViewPager viewPager) {
             this.viewPager = viewPager;
         }
 
         @Override
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            final OnPageChangeListener externalOnPageChangeListener =
+                    viewPager.getExternalOnPageChangeListener();
+            if (externalOnPageChangeListener != null) {
+                externalOnPageChangeListener.onPageScrolled(
+                        position, positionOffset, positionOffsetPixels);
+            }
+        }
+
+        @Override
         public void onPageSelected(int position) {
+            final OnPageChangeListener externalOnPageChangeListener =
+                    viewPager.getExternalOnPageChangeListener();
+            if (externalOnPageChangeListener != null) {
+                externalOnPageChangeListener.onPageSelected(position);
+            }
+
             InfiniteViewPagerAdapter adapter = (InfiniteViewPagerAdapter) viewPager.getAdapter();
             List<Fragment> pagerFragments = adapter.getPagerFragments();
+            // Ensure that cycling only occurs if there are 3 or more fragments.
             if (pagerFragments.size() > 2) {
                 final int cycleResult = cyclePagerFragments(pagerFragments, position);
                 if (cycleResult != 0) {
                     adapter.setPagerFragments(pagerFragments);
                     adapter.notifyDataSetChanged();
+
+                    // Turn off the actual and external OnPageChangeListeners, so that
+                    // this function does not unnecessarily get called again when
+                    // setting the current item.
                     viewPager.setOnPageChangeListener(null);
+                    viewPager.setActualOnPageChangeListener(null);
                     viewPager.setCurrentItem(position + cycleResult, false);
-                    viewPager.setOnPageChangeListener(this);
+                    viewPager.setOnPageChangeListener(externalOnPageChangeListener);
+                    viewPager.setActualOnPageChangeListener(this);
                 }
+            }
+        }
+
+        @Override
+        public void onPageScrollStateChanged(int state) {
+            final OnPageChangeListener externalOnPageChangeListener =
+                    viewPager.getExternalOnPageChangeListener();
+            if (externalOnPageChangeListener != null) {
+                externalOnPageChangeListener.onPageScrollStateChanged(state);
             }
         }
     }
